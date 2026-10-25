@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Точки клёва Russian Fishing 4 — справочник с фильтрами</title>
+<meta name="description" content="Статический справочник точек клёва Russian Fishing 4: фильтр по водоёму, уровню игрока 1–34, навыкам и рыбе. Данные из публичных постов rf4-map.ru и rf4intel.com, у каждой точки — ссылка на источник.">
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip-link" href="#results">Перейти к списку точек</a>
+
+<header class="page-head">
+  <div class="page-head-inner">
+    <p class="kicker">Неофициальный справочник · Russian Fishing 4</p>
+    <h1>Точки клёва с фильтром по карте, уровню и навыкам</h1>
+    <p class="lede" id="head-lede">Данные собраны из публичных постов игроков на rf4-map.ru и rf4intel.com. У каждой точки — видимая ссылка на источник.</p>
+    <ul class="stat-row" aria-label="Состав справочника">
+      <li><strong id="stat-spots">—</strong><span>точек</span></li>
+      <li><strong id="stat-wb">—</strong><span>водоёмов</span></li>
+      <li><strong id="stat-fish">—</strong><span>видов рыб в точках</span></li>
+      <li><strong id="stat-high">—</strong><span>точек с высокой уверенностью</span></li>
+      <li><strong id="stat-date">—</strong><span>дата актуальности</span></li>
+    </ul>
+  </div>
+</header>
+
+<noscript>
+  <p class="noscript">Для фильтров нужен JavaScript: страница целиком работает в браузере, без сервера. Включите JavaScript и перезагрузите страницу.</p>
+</noscript>
+
+<div class="load-error" id="load-error" hidden>
+  <h2>Не удалось загрузить данные</h2>
+  <p id="load-error-msg"></p>
+  <p class="hint">
+    Страница открыта по <code>file://</code>, а браузер запрещает странице читать JSON-файлы с диска.
+    Поэтому те же данные лежат рядом во встроенном снимке <code>site/data/rf4-data.js</code> и
+    <code>site/data/rf4-spots.js</code> — они пересобираются из <code>data/*.json</code> командой
+    <code>node site/build-data.mjs</code>.
+  </p>
+  <p class="hint">Запасной путь: выберите файлы <code>data/dataset.json</code>, <code>data/waterbodies.json</code>, <code>data/skills.json</code>, <code>data/spots.json</code> вручную.</p>
+  <label class="file-pick">
+    <span>Выбрать JSON-файлы данных</span>
+    <input type="file" id="file-input" accept=".json,application/json" multiple>
+  </label>
+  <p class="hint" id="file-status"></p>
+</div>
+
+<main class="layout" id="main">
+  <button type="button" class="filters-toggle" id="filters-toggle" aria-expanded="true" aria-controls="filters">
+    <span class="filters-toggle-icon" aria-hidden="true">▾</span> Фильтры
+  </button>
+
+  <aside class="filters" id="filters" aria-label="Фильтры точек клёва">
+    <div class="filter-block">
+      <label class="filter-label" for="f-waterbody">Водоём</label>
+      <select id="f-waterbody"></select>
+      <p class="hint" id="wb-hint"></p>
+    </div>
+
+    <div class="filter-block">
+      <label class="filter-label" for="f-level">Уровень игрока</label>
+      <div class="level-row">
+        <input type="range" id="f-level" min="1" max="34" step="1" value="34" aria-describedby="level-hint">
+        <input type="number" id="f-level-num" min="1" max="34" step="1" value="34" inputmode="numeric" aria-label="Уровень игрока числом">
+      </div>
+      <p class="hint" id="level-hint"></p>
+    </div>
+
+    <div class="filter-block">
+      <label class="filter-label" for="f-fish">Рыба</label>
+      <input type="search" id="f-fish" list="fish-list" placeholder="например: судак" autocomplete="off" aria-describedby="fish-hint">
+      <datalist id="fish-list"></datalist>
+      <p class="hint" id="fish-hint">Поиск по части названия: «щук» найдёт щуку, «окун» — окуня. Пустое поле — все виды.</p>
+    </div>
+
+    <div class="filter-block">
+      <label class="filter-label" for="f-method">Способ ловли</label>
+      <select id="f-method"></select>
+      <p class="hint" id="method-hint"></p>
+    </div>
+
+    <fieldset class="filter-block skills">
+      <legend class="filter-label">Навыки</legend>
+      <p class="hint">
+        Отметьте навыки, которые <strong>уже открыты у вас</strong>. Пока не отмечен ни один навык,
+        фильтр выключен и показывает все точки. Уровни открытия навыков не публикует ни один разрешённый
+        источник, поэтому рядом с каждым навыком стоит «не проверено».
+      </p>
+      <div id="skills-filter" class="skills-list"></div>
+      <div class="skills-actions">
+        <button type="button" class="chip-action" id="skills-all">отметить все</button>
+        <button type="button" class="chip-action" id="skills-none">снять все</button>
+      </div>
+      <label class="check-row opt">
+        <input type="checkbox" id="f-skill-strict">
+        <span>Скрывать точки с непроверенным навыком</span>
+      </label>
+      <p class="hint" id="skill-note"></p>
+    </fieldset>
+
+    <details class="filter-block more">
+      <summary>Дополнительно</summary>
+      <div class="more-body">
+        <label class="filter-label" for="f-square">Квадрат или координата</label>
+        <input type="search" id="f-square" placeholder="A1, C6 или 21:179" autocomplete="off" aria-describedby="square-hint">
+        <p class="hint" id="square-hint">Квадрат — префиксом (например, <code>A</code> — весь ряд), координата — как <code>21:179</code>.</p>
+
+        <label class="filter-label" for="f-confidence">Уверенность в данных</label>
+        <select id="f-confidence">
+          <option value="any">Любая</option>
+          <option value="high">Только высокая</option>
+          <option value="medium">Высокая и средняя</option>
+        </select>
+        <p class="hint">Оценка считается по числу подтверждённых параметров точки (способ, квадрат, клипса, глубина, наживка, дата поста).</p>
+
+        <div class="craft-block">
+          <p class="filter-label">Крафтовые навыки</p>
+          <p class="hint">Не влияют на доступность точки — уровни тоже не проверены.</p>
+          <ul id="craft-skills" class="craft-skills"></ul>
+        </div>
+      </div>
+    </details>
+
+    <button type="button" class="btn btn-reset" id="btn-reset">Сбросить фильтры</button>
+  </aside>
+
+  <section class="results" id="results" aria-label="Точки клёва">
+    <div class="result-bar">
+      <p class="result-count" role="status" aria-live="polite">
+        Показано <strong id="count-shown">0</strong> из <strong id="count-total">0</strong> точек
+      </p>
+      <div class="result-tools">
+        <label class="sort-label" for="f-sort">Сортировка</label>
+        <select id="f-sort">
+          <option value="level">по уровню (доступные сверху)</option>
+          <option value="waterbody">по водоёму</option>
+          <option value="fish">по рыбе</option>
+          <option value="fresh">сначала свежие посты</option>
+          <option value="confidence">сначала надёжные</option>
+        </select>
+      </div>
+    </div>
+
+    <p class="notice" id="notice" hidden></p>
+    <div class="hidden-chips" id="hidden-chips" aria-label="Что скрыто фильтрами"></div>
+
+    <div class="empty" id="empty-state" hidden>
+      <p class="empty-title">Под такие фильтры не подошла ни одна точка.</p>
+      <p class="hint empty-why"></p>
+      <p class="hint">Чаще всего мешает уровень игрока или выбранный водоём. Ниже видно, сколько точек скрывает каждый фильтр.</p>
+      <button type="button" class="btn" id="btn-reset-2">Сбросить все фильтры</button>
+    </div>
+
+    <ul class="cards" id="list"></ul>
+
+    <p class="more-row"><button type="button" class="btn btn-more" id="btn-more" hidden>Показать ещё</button></p>
+    <p class="hint" id="shown-note"></p>
+  </section>
+</main>
+
+<footer class="page-foot">
+  <div class="foot-grid">
+    <section>
+      <h2>Актуальность</h2>
+      <p>Дата актуальности данных: <strong id="f-updated">—</strong>. У каждой точки своя дата проверки — <code>checked_at</code>.</p>
+      <p id="f-counts" class="hint"></p>
+      <p class="hint">Точки — это публичные посты игроков. Они не проверены разработчиком и могут устареть: погода, время суток и патчи меняют клёв.</p>
+    </section>
+    <section>
+      <h2>Источники</h2>
+      <ul id="f-sources" class="source-list"></ul>
+      <p class="hint">Используются только текстовые факты и ссылки. Картинки с сайтов источников не берутся, API не используется.</p>
+    </section>
+    <section>
+      <h2>Дисклеймер</h2>
+      <p id="f-disclaimer">—</p>
+    </section>
+  </div>
+
+  <details class="skills-details">
+    <summary>Справочник навыков (11): уровни открытия не подтверждены</summary>
+    <div id="skills-info" class="skills-info"></div>
+  </details>
+
+  <p class="build">Чистый HTML, CSS и JavaScript: без сборщика, сервера, npm-зависимостей и платных API. Открывается двойным щелчком по файлу.</p>
+</footer>
+
+<script src="data/rf4-data.js"></script>
+<script src="data/rf4-spots.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
